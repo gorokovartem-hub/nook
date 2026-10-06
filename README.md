@@ -5,6 +5,16 @@ Python + customtkinter. Тема (тёмная/светлая) подхваты�
 
 <!-- Добавьте сюда скриншот: ![screenshot](docs/screenshot.png) -->
 
+[![release](https://img.shields.io/github/v/release/gorokovartem-hub/nook)](https://github.com/gorokovartem-hub/nook/releases/latest)
+
+## Скачать
+
+**[nook-v0.1.0-win64.zip](https://github.com/gorokovartem-hub/nook/releases/download/v0.1.0/nook-v0.1.0-win64.zip)** — готовая сборка для Windows, Python не нужен.
+Распакуйте архив и запустите `nook.exe`. Все версии: [Releases](https://github.com/gorokovartem-hub/nook/releases).
+
+> Windows SmartScreen или антивирус могут предупредить о неподписанном приложении
+> (программа использует глобальные горячие клавиши). Исходный код открыт.
+
 ## Возможности
 
 - **Виджет на панели задач** — CPU и RAM с мини-графиками, в полном режиме ещё GPU, диск и сеть.
@@ -27,7 +37,7 @@ Python + customtkinter. Тема (тёмная/светлая) подхваты�
 
 В главном окне: `Ctrl+1…4` — переключение вкладок, `Esc` — свернуть в трей.
 
-## Установка
+## Запуск из исходников
 
 ```powershell
 git clone https://github.com/gorokovartem-hub/nook.git
