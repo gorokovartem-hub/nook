@@ -1,0 +1,23 @@
+# Виртуальное окружение
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Личные данные приложения (не публиковать)
+notes.txt
+config.json
+screenshots/
+*.log
+
+# IDE / ОС
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

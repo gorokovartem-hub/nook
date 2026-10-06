@@ -1,0 +1,10 @@
+customtkinter>=5.2
+keyboard>=0.13.5
+mss>=9.0
+nvidia-ml-py>=12.0
+Pillow>=10.0
+plyer>=2.1
+psutil>=5.9
+pyperclip>=1.8
+pystray>=0.19.5
+pywin32>=306
