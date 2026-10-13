@@ -56,13 +56,7 @@ class TrayApp:
         ))
 
     def _quick_note(self, icon, item):
-        from tkinter import simpledialog
-        def ask():
-            text = simpledialog.askstring("быстрая заметка", "что записать?")
-            if text:
-                from features import notes
-                notes.add_note(text)
-        self.window.root.after(0, ask)
+        self.window.root.after(0, self.window.show_quick_note)
 
     def _quit(self, icon, item):
         self._stop.set()

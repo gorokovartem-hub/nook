@@ -9,6 +9,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+build-output-*/
 
 # Личные данные приложения (не публиковать)
 notes.txt

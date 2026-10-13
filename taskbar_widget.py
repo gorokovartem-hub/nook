@@ -188,7 +188,7 @@ class TaskbarWidget:
         self._dragging = False
         self._hover = False
         self._hidden_by_fs = False
-        self._hidden_by_user = False
+        self._hidden_by_user = not cfg.get("visible", True)
 
         self._tooltip = None
         self._tooltip_label = None
@@ -240,7 +240,7 @@ class TaskbarWidget:
         self.canvas.bind("<Enter>",           self._on_enter)
         self.canvas.bind("<Leave>",           self._on_leave)
 
-        self.win.attributes("-alpha", 1.0)
+        self.win.attributes("-alpha", theme.get_opacity())
 
         self._draw()
         self._tick()
@@ -248,6 +248,7 @@ class TaskbarWidget:
         self._fs_watch()
         self._keep_loop()
         self._register_hotkeys()
+        self._sync_visibility()
 
     # --------------------------------------------------------
     #  утилиты
@@ -261,6 +262,21 @@ class TaskbarWidget:
         k = -amount if lum > 128 else amount
         r, g, b = (max(0, min(255, v + k)) for v in (r, g, b))
         return f"#{r:02x}{g:02x}{b:02x}"
+
+    def apply_theme(self):
+        pal = theme.COLORS
+        self.C_BG = pal["TB_BG"]
+        self.C_TRACK = pal["TB_TRACK"]
+        self.C_FG = pal["TB_FG"]
+        self.C_DIM = pal["TB_DIM"]
+        self.C_BORDER = self.C_TRACK
+        self.C_HOVER = self._shade(self.C_BG, 10)
+        self.C_HIGHLIGHT = self._shade(self.C_BG, 25)
+        self.RADIUS = theme.get_corner_radius()
+        self._bg_now = self.C_HOVER if self._hover else self.C_BG
+        self.win.attributes("-alpha", theme.get_opacity())
+        self._dirty = True
+        self._draw()
 
     @staticmethod
     def _round_rect(c, x1, y1, x2, y2, r, **kw):
@@ -305,6 +321,9 @@ class TaskbarWidget:
             "ctrl+alt+c": lambda: self.master.after(0, self._set_mode, "compact"),
             "ctrl+alt+f": lambda: self.master.after(0, self._set_mode, "full"),
             "ctrl+alt+w": lambda: self.master.after(0, self._toggle_visibility),
+            "ctrl+alt+n": lambda: self.master.after(
+                0, lambda: self.master.event_generate(
+                    "<<NookQuickNote>>", when="tail")),
             "ctrl+alt+s": self._screenshot,
         })
 
@@ -349,8 +368,16 @@ class TaskbarWidget:
             pass
 
     def _toggle_visibility(self):
-        self._hidden_by_user = not self._hidden_by_user
+        self.set_visibility(self._hidden_by_user)
+
+    def set_visibility(self, visible: bool):
+        """Устанавливает видимость по желанию пользователя."""
+        self._hidden_by_user = not visible
         self._sync_visibility()
+        self._save_position()
+
+    def is_user_visible(self) -> bool:
+        return not self._hidden_by_user
 
     def _fs_watch(self):
         if not self._ok():
@@ -422,6 +449,7 @@ class TaskbarWidget:
         cfg.setdefault("taskbar_widget", {})
         cfg["taskbar_widget"]["mode"] = self.mode
         cfg["taskbar_widget"]["x"] = self.win.winfo_x()
+        cfg["taskbar_widget"]["visible"] = not self._hidden_by_user
         save_config(cfg)
 
     def _reset_position(self):
@@ -448,7 +476,7 @@ class TaskbarWidget:
         self._drag_offset_x = event.x_root - self.win.winfo_x()
         self._dragging = False
         self._hide_tooltip()
-        self.win.attributes("-alpha", 0.7)
+        self.win.attributes("-alpha", theme.get_opacity() * 0.7)
 
     def _on_drag(self, event):
         if not self._dragging:
@@ -479,7 +507,7 @@ class TaskbarWidget:
         self.win.geometry(f"+{new_x}+{y}")
 
     def _on_release(self, event):
-        self.win.attributes("-alpha", 1.0)
+        self.win.attributes("-alpha", theme.get_opacity())
         self._bg_now = self.C_HOVER if self._hover else self.C_BG
         self._dirty = True
 
@@ -672,7 +700,7 @@ class TaskbarWidget:
 
         W, H = self._size_for_mode()
         self._round_rect(
-            c, 1, 1, W - 1, H - 1, self.RADIUS,
+            c, 1, 1, W - 1, H - 1, min(self.RADIUS, H // 2),
             fill=self._bg_now, outline=self.C_BORDER,
         )
 
