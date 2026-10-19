@@ -83,7 +83,7 @@ To restore their layout, right-click a card and select
 
 ## License
 
-<!-- Choose a license, e.g. MIT, and add a LICENSE file -->
+[MIT](LICENSE) © Artem Gorokov
 
 ---
 # RU
@@ -166,4 +166,4 @@ python main.py
 
 ## Лицензия
 
-<!-- Выберите лицензию, например MIT, и добавьте файл LICENSE -->
+[MIT](LICENSE) © Artem Gorokov
