@@ -1,4 +1,9 @@
+![Python](https://img.shields.io/badge/python-3.10+-blue)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-0.2.0-orange)
 # EU
+
 
 A minimalist Windows utility: a taskbar widget and a small tray window.
 Python + customtkinter. The theme (dark/light) is picked up from Windows settings.
