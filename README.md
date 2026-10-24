@@ -45,8 +45,6 @@ Windows SmartScreen or antivirus software may warn you about an unsigned applica
 - **Notes and tasks** — quick notes, to-do lists, and reminders. Notes appear as separate cards and are saved to `notes.txt`.
 - **Quick notes window** — access recent notes from the system tray or by pressing `Ctrl+Alt+N`.
 - **Clipboard history** — browse copied entries and click an item to restore it to the clipboard.
-- **Quick launcher** — launch applications and shortcuts without extra steps.
-- **Music player** — quick access to music and playback controls.
 - **Area screenshot** — capture a selected screen area and copy it to the clipboard.
 
 ### Widget behavior
@@ -179,8 +177,6 @@ Windows SmartScreen или антивирус могут предупредит�
 - **Заметки и задачи** — быстрые записи, списки дел и напоминания. Заметки отображаются отдельными карточками и сохраняются в `notes.txt`.
 - **Быстрые заметки** — доступ к последним записям из системного трея или по `Ctrl+Alt+N`.
 - **История буфера обмена** — просмотр скопированных данных и восстановление записи нажатием.
-- **Быстрый лаунчер** — запуск приложений и ярлыков без лишних действий.
-- **Музыкальный плеер** — быстрый доступ к музыке и управлению воспроизведением.
 - **Скриншот области** — захват выбранной области экрана с копированием изображения в буфер обмена.
 
 ### Поведение виджетов
