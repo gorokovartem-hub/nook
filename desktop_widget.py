@@ -6,6 +6,7 @@ import tkinter as tk
 
 import psutil
 
+from i18n import tr
 import theme
 from taskbar_widget import load_config, save_config
 
@@ -17,14 +18,22 @@ WS_EX_TOOLWINDOW = 0x00000080
 HWND_BOTTOM = 1
 SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE = 0x0001, 0x0002, 0x0010
 
-MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля",
-          "августа", "сентября", "октября", "ноября", "декабря"]
-WEEKDAYS = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница",
-            "Суббота", "Воскресенье"]
+MONTHS = [tr(month) for month in (
+    "января", "февраля", "марта", "апреля", "мая", "июня", "июля",
+    "августа", "сентября", "октября", "ноября", "декабря",
+)]
+WEEKDAYS = [tr(day) for day in (
+    "Понедельник", "Вторник", "Среда", "Четверг", "Пятница",
+    "Суббота", "Воскресенье",
+)]
 
 GIB = 1024 ** 3
 WIDGETS = ("sys", "disk", "clock")
-TITLES = {"sys": "СИСТЕМА", "disk": "ДИСКИ", "clock": "ЧАСЫ"}
+TITLES = {
+    "sys": tr("СИСТЕМА"),
+    "disk": tr("ДИСКИ"),
+    "clock": tr("ЧАСЫ"),
+}
 
 
 class DesktopWidget:
@@ -261,6 +270,12 @@ class DesktopWidget:
             min(theme.get_corner_radius(), height // 2),
             fill=palette["CARD"], outline=palette["LINE"],
         )
+        if theme.is_glass():
+            self._round_rect(
+                canvas, 3, 3, self.W - 3, height - 3,
+                max(0, min(theme.get_corner_radius(), height // 2) - 2),
+                fill="", outline=palette["GLOSS"],
+            )
         canvas.create_text(
             self.PAD, self.HEAD_H // 2 + 1, text=TITLES[key], anchor="w",
             fill=palette["FG"], font=("Segoe UI Semibold", 9),
@@ -282,7 +297,8 @@ class DesktopWidget:
             self._refresh_disks()
             if not self._disks:
                 canvas.create_text(
-                    self.PAD, self.HEAD_H + 14, text="нет данных", anchor="w",
+                    self.PAD, self.HEAD_H + 14,
+                    text=tr("нет данных"), anchor="w",
                     fill=palette["FG_DIM"], font=("Segoe UI", 9),
                 )
             for index, (name, used, total) in enumerate(self._disks):
@@ -294,7 +310,7 @@ class DesktopWidget:
         else:
             current = time.localtime()
             canvas.create_text(
-                self.PAD, 18, text="ЧАСЫ", anchor="w",
+                self.PAD, 18, text=tr("ЧАСЫ"), anchor="w",
                 fill=palette["FG_DIM"], font=("Segoe UI Semibold", 9),
             )
             canvas.create_text(
@@ -414,9 +430,9 @@ class DesktopWidget:
             bd=0, relief="flat", font=("Segoe UI", 10),
         )
         menu.add_command(
-            label="Сбросить позиции карточек", command=self.reset_position)
+            label=tr("Сбросить позиции карточек"), command=self.reset_position)
         menu.add_command(
-            label="Скрыть эту карточку",
+            label=tr("Скрыть эту карточку"),
             command=lambda: self.set_widget_visibility(key, False))
         try:
             menu.tk_popup(event.x_root, event.y_root)

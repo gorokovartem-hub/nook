@@ -39,6 +39,6 @@ def main():
     # tkinter — в главном потоке
     window.run_forever()
 
-
+    
 if __name__ == "__main__":
     main()

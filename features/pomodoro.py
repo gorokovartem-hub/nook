@@ -3,6 +3,8 @@ import threading
 import time
 from plyer import notification
 
+from i18n import tr
+
 WORK = 25 * 60
 SHORT = 5 * 60
 LONG = 15 * 60
@@ -58,15 +60,15 @@ class Pomodoro:
             if self.cycle % CYCLES_BEFORE_LONG == 0:
                 self.phase = "long"
                 self.remaining = LONG
-                notify("🍅 Длинный перерыв!", "15 минут отдыха")
+                notify(tr("🍅 Длинный перерыв!"), tr("15 минут отдыха"))
             else:
                 self.phase = "short"
                 self.remaining = SHORT
-                notify("🍅 Перерыв", "5 минут отдыха")
+                notify(tr("🍅 Перерыв"), tr("5 минут отдыха"))
         else:
             self.phase = "work"
             self.remaining = WORK
-            notify("🍅 Работа!", "25 минут фокуса")
+            notify(tr("🍅 Работа!"), tr("25 минут фокуса"))
 
         self._stop.clear()
         self._thread = threading.Thread(target=self._run, daemon=True)

@@ -76,6 +76,21 @@ and automatically snap to screen edges and to each other.
 To restore their layout, right-click a card and select
 "Reset card positions". Card visibility is configured in Nook Studio.
 
+
+
+## English build / Сборка на английском
+
+The repository can produce separate Russian and English Windows builds. The English build starts through `main_en.py`, which selects English before loading the UI.
+
+To build it locally on Windows, install the requirements and PyInstaller, then run:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt pyinstaller
+.\build_en.ps1
+```
+
+The executable will be at `dist\Nook-English\Nook-English.exe`. Pushing a version tag such as `v0.2.1` also triggers the GitHub Actions workflow, which builds and attaches both `Nook-Russian-win64.zip` and `Nook-English-win64.zip` to the GitHub Release.
+
 ## License
 
 <!-- Choose a license, e.g. MIT, and add a LICENSE file -->

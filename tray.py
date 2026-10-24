@@ -5,32 +5,49 @@ import pystray
 from pystray import MenuItem as Item
 
 from features import monitor
+from i18n import tr
 from icons import make_icon, color_by_load
-
+from config_manager import load_config
 
 class TrayApp:
     def __init__(self, window, clipboard, on_quit):
         self.window = window
         self.clipboard = clipboard
         self.on_quit = on_quit
+        self._stop = threading.Event()
+        
+        # Создаём иконку с меню
         self.icon = pystray.Icon(
             "trayapp",
-            icon=make_icon("#4CAF50"),
-            title="загрузка…",
+            icon=make_icon("#4ade80"),
+            title="nook",
             menu=self._build_menu(),
         )
-        self._stop = threading.Event()
 
     def _build_menu(self):
+        """Генерирует меню с актуальными хоткеями и переводами."""
+        cfg = load_config()["hotkeys"]
+
         return pystray.Menu(
-            Item("открыть", self._open, default=True),
-            Item("скриншот области", self._screenshot),
-            Item("быстрая заметка", self._quick_note),
+            Item(tr("открыть"), self._open, default=True),
+            Item(tr("скриншот области"), self._screenshot),
+            Item(tr("быстрая заметка"), self._quick_note),
             pystray.Menu.SEPARATOR,
             Item(lambda item: self._stats_item(), None, enabled=False),
             pystray.Menu.SEPARATOR,
-            Item("выход", self._quit),
+            Item(f"{tr('компакт')} ({cfg.get('compact', 'ctrl+alt+c').upper()})", 
+                 lambda: self.window.taskbar_widget._set_mode("compact")),
+            Item(f"{tr('полный')} ({cfg.get('full', 'ctrl+alt+f').upper()})", 
+                 lambda: self.window.taskbar_widget._set_mode("full")),
+            pystray.Menu.SEPARATOR,
+            Item(tr("выход"), self._quit),
         )
+
+    def refresh_menu(self):
+        """Пересоздает меню (вызывается после смены хоткеев)."""
+        if self.icon:
+            self.icon.menu = self._build_menu()
+            self.icon.update_menu()
 
     def _stats_item(self):
         s = monitor.get_stats()
@@ -40,8 +57,7 @@ class TrayApp:
     def _open(self, icon, item):
         self.window.root.after(0, self.window.show)
 
-    def _screenshot(self):
-        import time
+    def _screenshot(self, icon=None, item=None):
         # игнорируем вызовы в первые 3 секунды после старта
         if not hasattr(self, "_started_at"):
             self._started_at = time.time()
@@ -50,8 +66,8 @@ class TrayApp:
             return
 
         from features.screenshot import grab_region
-        self.master.after(0, lambda: grab_region(
-            master=self.master,
+        self.window.root.after(0, lambda: grab_region(
+            master=self.window.root,
             copy_to_clipboard=True,
         ))
 

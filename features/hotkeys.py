@@ -22,6 +22,16 @@ def _init():
         _available = False
         return False
 
+def unregister(hotkey: str) -> bool:
+    """Удаляет хоткей."""
+    if not _init():
+        return False
+    try:
+        _kb.remove_hotkey(hotkey)
+        return True
+    except Exception as e:
+        print(f"Не удалось удалить {hotkey}: {e}")
+        return False
 
 def register(hotkey: str, callback) -> bool:
     if not _init():

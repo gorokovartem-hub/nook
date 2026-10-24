@@ -1,0 +1,60 @@
+name: Build Windows releases
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - spec: nook.spec
+            output_dir: nook
+            artifact: Nook-Russian
+          - spec: nook-en.spec
+            output_dir: Nook-English
+            artifact: Nook-English
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build executable
+        run: pyinstaller --clean --noconfirm ${{ matrix.spec }}
+
+      - name: Package build
+        shell: pwsh
+        run: |
+          $source = "dist/${{ matrix.output_dir }}"
+          if (-not (Test-Path $source)) { throw "Build output not found: $source" }
+          Compress-Archive -Path "$source/*" -DestinationPath "${{ matrix.artifact }}-win64.zip" -Force
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-win64
+          path: ${{ matrix.artifact }}-win64.zip
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact }}-win64.zip

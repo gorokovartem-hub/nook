@@ -2,6 +2,8 @@
 from pathlib import Path
 from datetime import datetime
 
+from i18n import tr
+
 NOTES_FILE = Path(__file__).resolve().parent.parent / "notes.txt"
 
 def add_note(text: str) -> None:
@@ -11,7 +13,7 @@ def add_note(text: str) -> None:
 
 def read_notes() -> str:
     if not NOTES_FILE.exists():
-        return "Пока пусто..."
+        return tr("Пока пусто...")
     return NOTES_FILE.read_text(encoding="utf-8")
 
 def clear_notes() -> None:

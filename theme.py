@@ -5,26 +5,31 @@ from pathlib import Path
 
 import customtkinter as ctk
 
+from i18n import tr
+
 CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
+MAGIC_COLOR = "#010203"
 DEFAULT_SETTINGS = {
     "mode": "system",
     "preset": "system",
     "colors": {},
     "opacity": 0.92,
     "corner_radius": 12,
+    "glass": True,
+    "glass_density": 0.40,
 }
 COLOR_KEYS = ("BG", "CARD", "FG", "LINE")
 PRESET_NAMES = {
-    "system": "Системная",
-    "dark": "Тёмная",
-    "light": "Светлая",
-    "midnight": "Полночь",
-    "ocean": "Океан",
-    "forest": "Лес",
-    "violet": "Фиолетовая",
-    "rose": "Розовая",
-    "amber": "Янтарная",
-    "graphite": "Графит",
+    "system": tr("Системная"),
+    "dark": tr("Тёмная"),
+    "light": tr("Светлая"),
+    "midnight": tr("Полночь"),
+    "ocean": tr("Океан"),
+    "forest": tr("Лес"),
+    "violet": tr("Фиолетовая"),
+    "rose": tr("Розовая"),
+    "amber": tr("Янтарная"),
+    "graphite": tr("Графит"),
 }
 
 # ---------- Палитры ----------
@@ -128,6 +133,7 @@ PRESETS = {
 }
 
 COLORS = dict(DARK)
+BASE_COLORS = dict(DARK)   # палитра до наложения «стекла»
 _SETTINGS = dict(DEFAULT_SETTINGS)
 
 # ---------- Явные константы (заполняются в apply_palette) ----------
@@ -157,6 +163,69 @@ def is_windows_light() -> bool:
         return bool(val)
     except Exception:
         return False
+
+
+# ---------- Стекло ----------
+def _rgb(color: str):
+    h = color.lstrip("#")
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+
+
+def _mix(c1: str, c2: str, t: float) -> str:
+    """Смешивает два #rrggbb: t=0 → c1, t=1 → c2."""
+    a, b = _rgb(c1), _rgb(c2)
+    r, g, bl = (round(x + (y - x) * t) for x, y in zip(a, b))
+    return f"#{r:02x}{g:02x}{bl:02x}"
+
+
+def _is_dark(color: str) -> bool:
+    r, g, b = _rgb(color)
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128
+
+
+def _glassify(base: dict, custom: dict) -> dict:
+    """Накладывает стекло на любую палитру.
+
+    Фон слегка подкрашивается акцентом (это же цвет оттенка Acrylic),
+    карточки «приподнимаются», граница становится светлой кромкой,
+    GLOSS — внутренний блик. Цвета, выбранные вручную, не трогаем.
+    """
+    p = dict(base)
+    white, black = "#ffffff", "#000000"
+    dark = _is_dark(base["BG"])
+    # светлая тема: фон чуть темнее, иначе на светлых обоях всё сливается
+    bg = _mix(base["BG"], base["ACCENT"], 0.05 if dark else 0.10)
+    p["BG"] = bg
+    if dark:
+        p["BG_SOFT"] = _mix(bg, white, 0.05)
+        p["CARD"] = _mix(base["CARD"], white, 0.05)
+        p["CARD_HOVER"] = _mix(p["CARD"], white, 0.07)
+        p["LINE"] = _mix(bg, white, 0.24)
+        p["GLOSS"] = _mix(bg, white, 0.12)
+    else:
+        p["BG_SOFT"] = _mix(bg, black, 0.04)
+        p["CARD"] = _mix(base["CARD"], bg, 0.35)
+        p["CARD_HOVER"] = _mix(p["CARD"], black, 0.05)
+        p["LINE"] = _mix(bg, black, 0.28)
+        p["GLOSS"] = white
+        p["FG_DIM"] = _mix(base["FG_DIM"], black, 0.25)
+    p["TB_BG"] = p["CARD"]
+    p["TB_TRACK"] = p["LINE"]
+    p.update(custom)
+    return p
+
+
+def is_glass() -> bool:
+    return bool(_SETTINGS.get("glass")) and is_dark_theme()
+
+def get_tint_alpha() -> int:
+    """Плотность оттенка Acrylic (0–255): чем выше, тем меньше стекло прозрачно."""
+    return round(255 * _SETTINGS["glass_density"])
+
+
+def is_dark_theme() -> bool:
+    """Тёмная ли тема на самом деле (для Acrylic и DWM), а не по имени пресета."""
+    return _is_dark(BASE_COLORS["BG"])
 
 
 def _refresh_module_globals():
@@ -198,7 +267,13 @@ def _load_settings():
         radius = max(0, min(24, int(saved.get("corner_radius", 12))))
     except (TypeError, ValueError):
         opacity, radius = 0.92, 12
+    try:
+        glass_density = max(0.05, min(1.0, float(saved.get("glass_density", 0.40))))
+    except (TypeError, ValueError):
+        glass_density = 0.40
     return {
+        "glass": bool(saved.get("glass", True)),
+        "glass_density": glass_density,
         "mode": preset if preset in ("system", "dark", "light") else "dark",
         "preset": preset,
         "colors": valid_colors,
@@ -223,20 +298,26 @@ def get_corner_radius() -> int:
 
 
 def apply_palette():
-    """Selects the configured palette and refreshes imported module globals."""
-    global COLORS
+    """Выбирает палитру и обновляет глобальные константы модуля."""
+    global COLORS, BASE_COLORS
     preset = _SETTINGS["preset"]
     if preset == "system":
-        COLORS = dict(LIGHT if is_windows_light() else DARK)
+        base = dict(LIGHT if is_windows_light() else DARK)
     else:
-        COLORS = dict(PRESETS[preset])
-    COLORS.update(_SETTINGS["colors"])
+        base = dict(PRESETS[preset])
+    base.update(_SETTINGS["colors"])
+    base["GLOSS"] = base["CARD"]
+    BASE_COLORS = base
+    # Стекло применяем только к тёмным палитрам — на светлой оно даёт грязь
+    use_glass = is_glass() and _is_dark(base["BG"])
+    COLORS = (_glassify(base, _SETTINGS["colors"])
+              if use_glass else dict(base))
     _refresh_module_globals()
     return COLORS
 
 
 def set_settings(settings):
-    """Apply normalized user settings and return the previous color palette."""
+    """Применяет настройки и возвращает предыдущую палитру."""
     global _SETTINGS
     previous = dict(COLORS)
     merged = {**DEFAULT_SETTINGS, **settings}
@@ -260,6 +341,8 @@ def set_settings(settings):
     merged["mode"] = merged["mode"] if merged["mode"] in (
         "system", "dark", "light") else "system"
     merged["opacity"] = max(0.45, min(1.0, float(merged["opacity"])))
+    merged["glass"] = bool(merged["glass"])
+    merged["glass_density"] = max(0.05, min(1.0, float(merged["glass_density"])))
     merged["corner_radius"] = max(0, min(24, int(merged["corner_radius"])))
     _SETTINGS = merged
     apply_palette()
@@ -270,10 +353,11 @@ def set_settings(settings):
 
 
 def recolor_widget_tree(root, previous=None):
-    """Update existing CustomTkinter controls after changing the palette."""
+    """Обновляет существующие виджеты после смены палитры."""
     roles = {
-        "fg_color": ("BG", "BG_SOFT", "CARD", "CARD_HOVER", "TB_BG", "TB_TRACK"),
-        "hover_color": ("BG_SOFT", "CARD_HOVER", "TB_TRACK"),
+        "fg_color": tuple(COLORS),
+        "hover_color": tuple(COLORS),
+        "bg_color": tuple(COLORS),
         "button_color": ("ACCENT", "FG"),
         "button_hover_color": ("FG_DIM", "ACCENT", "FG"),
         "border_color": ("LINE", "CARD"),
@@ -282,18 +366,46 @@ def recolor_widget_tree(root, previous=None):
         "text_color": ("FG", "FG_DIM", "FG_FAINT", "ACCENT", "GOOD", "WARN", "BAD",
                        "TB_FG", "TB_DIM"),
         "placeholder_text_color": ("FG_DIM", "FG_FAINT", "TB_DIM"),
-        "progress_color": ("FG", "GOOD", "WARN", "BAD"),
-        "bg": ("BG", "BG_SOFT", "CARD", "TB_BG", "KEY_COLOR"),
+        "progress_color": ("FG", "ACCENT", "GOOD", "WARN", "BAD"),
+        "bg": (*COLORS, "KEY_COLOR"),
     }
-    old_palettes = [previous or {}, _INITIAL_COLORS, DARK, LIGHT]
+
+    old_palettes = [previous or {}, _INITIAL_COLORS, DARK, LIGHT, {"MAGIC": MAGIC_COLOR}]
+    recolored = set()
+
+    def is_ctk_widget(widget):
+        return widget.__class__.__module__.startswith("customtkinter")
 
     def recolor(widget):
+        widget_id = id(widget)
+        if widget_id in recolored:
+            return
+        recolored.add(widget_id)
+
+        # --- 1. Чистый Tk: Frame, Canvas (только если это не CTk) ---
+        if isinstance(widget, (tk.Frame, tk.Canvas)) and not is_ctk_widget(widget):
+            try:
+                current_bg = widget.cget("bg")
+                for role in ("BG", "CARD", "BG_SOFT"):
+                    if any(palette.get(role) == current_bg for palette in old_palettes):
+                        widget.configure(bg=COLORS.get(role, current_bg))
+                        break
+            except (tk.TclError, AttributeError):
+                pass
+
+                # --- 2. CustomTkinter ---
         for option, role_names in roles.items():
             try:
                 value = widget.cget(option)
             except (tk.TclError, AttributeError, ValueError):
                 continue
+
             def replace_color(color):
+                if not isinstance(color, str):
+                    return color
+                if color == "transparent" or color == MAGIC_COLOR:
+                    return color
+                
                 for role in role_names:
                     if any(palette.get(role) == color for palette in old_palettes):
                         return COLORS.get(role, color)
@@ -305,12 +417,22 @@ def recolor_widget_tree(root, previous=None):
                 replacement = tuple(replace_color(color) for color in value)
             else:
                 continue
+                
+            # --- ФИКС ДЛЯ КНОПОК ---
+            if isinstance(widget, ctk.CTkButton) and option == "text_color":
+                # Если у кнопки заливка цвета FG (белая в тёмной теме, чёрная в светлой),
+                # то текст должен быть цвета BG. Иначе он сольется.
+                bg_color = widget.cget("fg_color")
+                if bg_color == COLORS["FG"]:
+                    replacement = COLORS["BG"]
+
             if replacement is not None and replacement != value:
                 try:
                     widget.configure(**{option: replacement})
                 except (tk.TclError, AttributeError, ValueError):
                     pass
 
+        # --- 3. Switch / Slider ---
         if isinstance(widget, ctk.CTkSwitch):
             try:
                 widget.configure(
@@ -332,6 +454,7 @@ def recolor_widget_tree(root, previous=None):
             except (tk.TclError, AttributeError, ValueError):
                 pass
 
+        # --- 4. Скругления ---
         if isinstance(widget, ctk.CTkFrame):
             radius = get_corner_radius()
         elif isinstance(widget, (ctk.CTkButton, ctk.CTkOptionMenu, ctk.CTkEntry)):
@@ -347,14 +470,44 @@ def recolor_widget_tree(root, previous=None):
             except (tk.TclError, AttributeError, TypeError, ValueError):
                 pass
 
+        # --- 5. ЖЁСТКИЙ ФИКС ДЛЯ СКРОЛЛ-ФРЕЙМОВ И ТЕКСТОВЫХ ПОЛЕЙ ---
+        if isinstance(widget, ctk.CTkScrollableFrame):
+            try:
+                widget.configure(fg_color=COLORS["BG"])
+                if hasattr(widget, "_parent_frame"):
+                    widget._parent_frame.configure(fg_color=COLORS["BG"])
+                if hasattr(widget, "_parent_canvas"):
+                    widget._parent_canvas.configure(bg=COLORS["BG"])
+            except Exception:
+                pass
+        elif isinstance(widget, (ctk.CTkTextbox, ctk.CTkEntry)):
+            try:
+                widget.configure(fg_color=COLORS["BG"])
+                if hasattr(widget, "_textbox") and hasattr(widget._textbox, "configure"):
+                    widget._textbox.configure(bg=COLORS["BG"])
+                if hasattr(widget, "_canvas") and hasattr(widget._canvas, "configure"):
+                    widget._canvas.configure(bg=COLORS["BG"])
+            except Exception:
+                pass
+        elif isinstance(widget, ctk.CTk):
+            try:
+                widget.configure(fg_color=COLORS["BG"])
+            except Exception:
+                pass
+
+        # --- 6. Рекурсия ---
         try:
             children = widget.winfo_children()
         except (tk.TclError, AttributeError):
-            return
+            children = ()
         for child in children:
             recolor(child)
 
     recolor(root)
+    try:
+        root.update_idletasks()
+    except Exception:
+        pass
 
 
 def setup_appearance():
@@ -366,8 +519,7 @@ def setup_appearance():
     ctk.set_default_color_theme("blue")
 
 
-# Применяем сразу при импорте: `from theme import BG, FG, ...` получит
-# актуальные цвета, а не тёмные по умолчанию.
+# Применяем сразу при импорте
 _SETTINGS = _load_settings()
 apply_palette()
 _INITIAL_COLORS = dict(COLORS)
@@ -375,7 +527,6 @@ _INITIAL_COLORS = dict(COLORS)
 
 # ---------- Хелперы ----------
 def level_color(pct: float, invert: bool = False) -> str:
-    """Цвет по уровню загрузки. invert=True — чем меньше, тем хуже (батарея)."""
     if invert:
         return COLORS["BAD"] if pct < 20 else COLORS["WARN"] if pct < 40 else COLORS["GOOD"]
     return COLORS["GOOD"] if pct < 60 else COLORS["WARN"] if pct < 85 else COLORS["BAD"]
@@ -402,7 +553,6 @@ def progress_bar(parent, color=None, height=4):
 
 
 def _button(parent, text, command, defaults, kwargs):
-    """Кнопка с дефолтами; переданные kwargs их переопределяют."""
     opts = {**defaults, **kwargs}
     return ctk.CTkButton(parent, text=text, command=command, **opts)
 
