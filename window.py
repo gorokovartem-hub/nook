@@ -134,7 +134,7 @@ class MainWindow:
         win.wm_attributes("-transparentcolor", "")
         win.configure(fg_color=theme.COLORS["BG"])
         win.wm_attributes("-alpha", 1.0)  # без -alpha: слой окна + Acrylic даёт белёсую вуаль
-        apply_edge_gradient(win, theme.COLORS.get("ACCENT", "#4ade80"), strength=22)
+        apply_edge_gradient(win, theme.COLORS.get("ACCENT", "#4ade80"), strength=15, background=theme.COLORS["BG"])
         if theme.is_glass():
             win.update_idletasks()
             win_blur.enable_blur(hwnd, dark_mode=theme.is_dark_theme(), tint_color=theme.COLORS["BG"], alpha=theme.get_tint_alpha())
