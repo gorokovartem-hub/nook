@@ -14,6 +14,7 @@ from taskbar_widget import TaskbarWidget
 from config_manager import load_config, save_config
 import win_blur
 import theme
+from window_effects import apply_edge_gradient
 from theme import (
     BG, BG_SOFT, CARD, CARD_HOVER, LINE, FG, FG_DIM, FG_FAINT, GOOD,
     FONT_TITLE, FONT_BODY, FONT_SMALL, FONT_MONO,
@@ -133,6 +134,7 @@ class MainWindow:
         win.wm_attributes("-transparentcolor", "")
         win.configure(fg_color=theme.COLORS["BG"])
         win.wm_attributes("-alpha", 1.0)  # без -alpha: слой окна + Acrylic даёт белёсую вуаль
+        apply_edge_gradient(win, theme.COLORS.get("ACCENT", "#4ade80"), strength=22)
         if theme.is_glass():
             win.update_idletasks()
             win_blur.enable_blur(hwnd, dark_mode=theme.is_dark_theme(), tint_color=theme.COLORS["BG"], alpha=theme.get_tint_alpha())
